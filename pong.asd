@@ -5,5 +5,9 @@
   :serial t
   :depends-on (:trivial-gamekit
                :cl-bodge)
-  :components ((:file "package")
-               (:file "pong")))
+  :components ((:module "src"
+                :components ((:file "package")
+                             (:file "vars")
+                             (:file "ui")
+                             (:file "game")
+                             (:file "pong")))))
