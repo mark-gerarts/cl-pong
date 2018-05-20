@@ -3,6 +3,8 @@
 (defgame pong ()
   ((player
     :accessor player)
+   (computer
+   :accessor computer)
    (ball
     :accessor ball))
   (:viewport-width *width*)
@@ -11,12 +13,14 @@
 
 (defmethod post-initialize ((this pong))
   ;; Initialize the players.
-  (let* ((paddle-left (make-paddle (vec2 *paddle-offset* *center-y*)))
-         (player-left (make-player paddle-left)))
-    (setf (player this) player-left))
+  (let* ((paddle-l (make-paddle (vec2 *paddle-offset* *center-y*)))
+         (player-l (make-player paddle-l))
+         (paddle-r (make-paddle (vec2 (- *width* *paddle-offset*) *center-y*)))
+         (player-r (make-player paddle-r)))
+    (setf (player this) player-l)
+    (setf (computer this) player-r))
   ;; Initialize the ball
-  (let ((ball (make-ball :velocity (vec2 -1 0.1))))
-    (setf (ball this) ball))
+  (setf (ball this) (make-ball))
   ;; Bind movement keys.
   (bind-button :up :pressed (lambda () (move (paddle (player this)) :up)))
   (bind-button :up :released (lambda () (halt (paddle (player this)))))
@@ -24,14 +28,17 @@
   (bind-button :down :released (lambda () (halt (paddle (player this))))))
 
 (defmethod act ((this pong))
-  (update (paddle (player this)))
-  (update (ball this)))
-
+  (let ((paddle-l (paddle (player this)))
+        (paddle-r (paddle (computer this))))
+    (update-paddle paddle-l)
+    (update-paddle paddle-r)
+    (update-ball (ball this) paddle-l paddle-r)))
 
 (defmethod draw ((this pong))
   (draw-background)
   (draw-center-line)
   (display (player this))
+  (display (computer this))
   (display (ball this)))
 
 (defun start-pong ()

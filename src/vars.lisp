@@ -14,6 +14,7 @@
 
 ;; Ball
 (defvar *ball-radius* 7)
+(defvar *ball-speed* 4)
 
 ;; Colours
 (defvar *background* (vec4 0 0 0 1))

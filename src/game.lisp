@@ -1,22 +1,34 @@
 (in-package :pong)
 
-(defclass game () ())
+;; Objects
+
+(defclass object ()
+  ((location
+    :initarg :location
+    :accessor location)))
+
+(defgeneric get-edges (object)
+  (:documentation "Should return the top, right, bottom and left edge, in that
+                   order"))
+
+(defclass movable (object)
+  ((velocity
+    :initarg :velocity
+    :initform (vec2 0 0)
+    :accessor velocity)))
+
+(defmethod apply-velocity ((movable movable))
+  (setf (location movable) (add (location movable) (velocity movable))))
 
 ;; Paddle
 
-(defclass paddle ()
-  ((location
-    :initarg :location
-    :accessor location
-    :documentation "The bottom-right corner of a paddle.")
-   (velocity
-    :initform (vec2 0 0)
-    :accessor velocity)
-   (movement-speed
+(defclass paddle (movable)
+  ((movement-speed
     :initarg :speed
     :initform *default-movement-speed*
     :accessor movement-speed
-    :documentation "The vertical velocity")))
+    :documentation "The vertical velocity"))
+  (:documentation "Location is the coordinate of the bottom left corner"))
 
 (defun make-paddle (location)
   (make-instance 'paddle :location location))
@@ -27,17 +39,26 @@
              *paddle-height*
              :fill-paint *primary*))
 
+(defmethod get-edges ((paddle paddle))
+  (let* ((location (location paddle))
+         (left (x location))
+         (bottom (y location))
+         (top (+ bottom *paddle-height*))
+         (right (+ left *paddle-width*)))
+    (values top right bottom left)))
+
 (defmethod check-edges ((paddle paddle))
   (let* ((bottomx (x (location paddle)))
          (topx (+ *paddle-height* bottomx)))
+    (print bottomx)
     (cond
       ((< bottomx 0)
        (setf (x (location paddle)) 0))
       ((> topx *height*)
        (setf (x (location paddle)) (- *height* *paddle-height*))))))
 
-(defmethod update ((paddle paddle))
-  (setf (location paddle) (add (location paddle) (velocity paddle)))
+(defmethod update-paddle ((paddle paddle))
+  (apply-velocity paddle)
   (check-edges paddle))
 
 (defmethod move ((paddle paddle) direction)
@@ -65,26 +86,20 @@
 
 ;; Ball
 
-(defclass ball ()
-  ((location
-    :initform (vec2 *center-x* *center-y*)
-    :accessor location)
-   (velocity
-    :initarg :velocity
-    :accessor velocity)))
+(defclass ball (movable) ())
 
-(defun make-ball (&key (velocity (vec2 0 0)))
-  (make-instance 'ball :velocity velocity))
+(defun make-ball ()
+  ;; Create a random starting velocity that is more likely to be horizontal.
+  (let* ((velocity (vec2 (- (random 2.0) 1) (- (random 1.0) 0.5)))
+         (velocity (normalize velocity))
+         (velocity (mult velocity *ball-speed*))
+         (location (vec2 *center-x* *center-y*)))
+    (make-instance 'ball :velocity velocity :location location)))
 
 (defmethod display ((ball ball))
   (draw-circle (location ball) *ball-radius* :fill-paint *primary*))
 
-(defmethod reverse-direction ((ball ball) direction)
-  (case direction
-    (:x (setf (x (velocity ball)) (- (x (velocity ball)))))
-    (:y (setf (y (velocity ball)) (- (y (velocity ball)))))))
-
-(defmethod check-edges ((ball ball))
+(defmethod get-edges ((ball ball))
   (let* ((location (location ball))
          (x (x location))
          (y (y location))
@@ -93,19 +108,33 @@
          (right (+ x r))
          (bottom (- y r))
          (left (- x r)))
-    (when (> top *height*) (progn
-                             (setf (y (location ball)) (- *height* r))
-                             (reverse-direction ball :y)))
-    (when (minusp bottom) (progn
-                             (setf (y (location ball)) r)
-                             (reverse-direction ball :y)))
-    (when (> right *width*) (progn
-                             (setf (x (location ball)) (- *width* r))
-                             (reverse-direction ball :x)))
-    (when (minusp left) (progn
-                          (setf (x (location ball)) r)
-                          (reverse-direction ball :x)))))
+    (values top right bottom left)))
 
-(defmethod update ((ball ball))
-  (setf (location ball) (add (location ball) (velocity ball)))
-  (check-edges ball))
+(defmethod reverse-direction ((ball ball) direction)
+  (case direction
+    (:x (setf (x (velocity ball)) (- (x (velocity ball)))))
+    (:y (setf (y (velocity ball)) (- (y (velocity ball)))))))
+
+(defmethod collides-with-p ((ball ball) (paddle paddle))
+  (multiple-value-bind (btop bright bbottom bleft) (get-edges ball)
+    (multiple-value-bind (ptop pright pbottom pleft) (get-edges paddle)
+      (and (> btop pbottom) (< bbottom ptop)
+           (> bleft pright) (< bright pleft)))))
+
+(defmethod check-for-collision ((ball ball) paddle-l paddle-r)
+  (multiple-value-bind (top right bottom left) (get-edges ball)
+    (declare (ignore right left))
+    (when (> top *height*)
+      (progn
+        (setf (y (location ball)) (- *height* *ball-radius*))
+        (reverse-direction ball :y)))
+    (when (minusp bottom)
+      (progn
+        (setf (y (location ball)) *ball-radius*)
+        (reverse-direction ball :y)))
+    (when (or (collides-with-p ball paddle-l) (collides-with-p ball paddle-r))
+      (reverse-direction ball :x))))
+
+(defmethod update-ball ((ball ball) paddle-l paddle-r)
+  (apply-velocity ball)
+  (check-for-collision ball paddle-l paddle-r))
