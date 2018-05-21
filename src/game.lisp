@@ -48,18 +48,32 @@
     (values top right bottom left)))
 
 (defmethod check-edges ((paddle paddle))
-  (let* ((bottomx (x (location paddle)))
-         (topx (+ *paddle-height* bottomx)))
-    (print bottomx)
+  (let* ((bottomy (y (location paddle)))
+         (topy (+ *paddle-height* bottomy)))
     (cond
-      ((< bottomx 0)
-       (setf (x (location paddle)) 0))
-      ((> topx *height*)
-       (setf (x (location paddle)) (- *height* *paddle-height*))))))
+      ((< bottomy 0)
+       (setf (y (location paddle)) 0))
+      ((> topy *height*)
+       (setf (y (location paddle)) (- *height* *paddle-height*))))))
 
 (defmethod update-paddle ((paddle paddle))
   (apply-velocity paddle)
   (check-edges paddle))
+
+(defmethod get-center ((paddle paddle))
+  (let* ((x (x (location paddle)))
+         (x (+ x (/ *paddle-height* 2)))
+         (y (y (location paddle)))
+         (y (+ y (/ *paddle-width* 2))))
+    (vec2 x y)))
+
+(defmethod update-computer ((paddle paddle) (ball ball))
+  (let* ((p1 (get-center paddle))
+         (p2 (location ball))
+         (dir (subt p2 p1))
+;         (dir (normalize dir))
+         (dir (vec2 0 (y dir))))
+    (setf (velocity paddle) dir)))
 
 (defmethod move ((paddle paddle) direction)
   (let* ((vy (movement-speed paddle))
@@ -116,24 +130,39 @@
     (:y (setf (y (velocity ball)) (- (y (velocity ball)))))))
 
 (defmethod collides-with-p ((ball ball) (paddle paddle))
-  (multiple-value-bind (btop bright bbottom bleft) (get-edges ball)
+  (let* ((r *ball-radius*)
+         (location (location ball))
+         (leftx (- (x location) r))
+         (lefty (- (y location) r))
+         (rightx (+ (x location) r))
+         (righty (+ (y location) r)))
     (multiple-value-bind (ptop pright pbottom pleft) (get-edges paddle)
-      (and (> btop pbottom) (< bbottom ptop)
-           (> bleft pright) (< bright pleft)))))
+      (and (< leftx pright) (> rightx pleft)
+           (< lefty ptop) (> righty pbottom)))))
+
+(defmethod check-for-paddle-collision ((ball ball) (paddle paddle))
+  (when (collides-with-p ball paddle)
+    (progn
+      (reverse-direction ball :x)
+      ;; Increase the ball velocity if the paddle is moving.
+      (incf (y (velocity ball)) (/ (y (velocity paddle)) 2)))))
 
 (defmethod check-for-collision ((ball ball) paddle-l paddle-r)
   (multiple-value-bind (top right bottom left) (get-edges ball)
     (declare (ignore right left))
+    ;; The ball hits the top of the screen.
     (when (> top *height*)
       (progn
         (setf (y (location ball)) (- *height* *ball-radius*))
         (reverse-direction ball :y)))
+    ;; The ball hits the bottom of the screen.
     (when (minusp bottom)
       (progn
         (setf (y (location ball)) *ball-radius*)
         (reverse-direction ball :y)))
-    (when (or (collides-with-p ball paddle-l) (collides-with-p ball paddle-r))
-      (reverse-direction ball :x))))
+    ;; Collision with either paddle.
+    (check-for-paddle-collision ball paddle-r)
+    (check-for-paddle-collision ball paddle-l)))
 
 (defmethod update-ball ((ball ball) paddle-l paddle-r)
   (apply-velocity ball)

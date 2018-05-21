@@ -15,7 +15,9 @@
   ;; Initialize the players.
   (let* ((paddle-l (make-paddle (vec2 *paddle-offset* *center-y*)))
          (player-l (make-player paddle-l))
-         (paddle-r (make-paddle (vec2 (- *width* *paddle-offset*) *center-y*)))
+         (paddle-r (make-paddle (vec2
+                                 (- *width* *paddle-offset* *paddle-width*)
+                                 *center-y*)))
          (player-r (make-player paddle-r)))
     (setf (player this) player-l)
     (setf (computer this) player-r))
@@ -29,10 +31,12 @@
 
 (defmethod act ((this pong))
   (let ((paddle-l (paddle (player this)))
-        (paddle-r (paddle (computer this))))
+        (paddle-r (paddle (computer this)))
+        (ball (ball this)))
+    (update-computer paddle-r ball)
     (update-paddle paddle-l)
     (update-paddle paddle-r)
-    (update-ball (ball this) paddle-l paddle-r)))
+    (update-ball ball paddle-l paddle-r)))
 
 (defmethod draw ((this pong))
   (draw-background)
