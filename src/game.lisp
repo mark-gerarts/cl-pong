@@ -67,14 +67,6 @@
          (y (+ y (/ *paddle-width* 2))))
     (vec2 x y)))
 
-(defmethod update-computer ((paddle paddle) (ball ball))
-  (let* ((p1 (get-center paddle))
-         (p2 (location ball))
-         (dir (subt p2 p1))
-;         (dir (normalize dir))
-         (dir (vec2 0 (y dir))))
-    (setf (velocity paddle) dir)))
-
 (defmethod move ((paddle paddle) direction)
   (let* ((vy (movement-speed paddle))
          (velocity (case direction
@@ -90,13 +82,19 @@
 (defclass player ()
   ((paddle
     :initarg :paddle
-    :accessor paddle)))
+    :accessor paddle)
+   (score
+    :initform 0
+    :accessor score)))
 
 (defun make-player (paddle)
   (make-instance 'player :paddle paddle))
 
 (defmethod display ((player player))
   (display (paddle player)))
+
+(defmethod add-point ((player player))
+  (incf (score player)))
 
 ;; Ball
 
@@ -167,3 +165,10 @@
 (defmethod update-ball ((ball ball) paddle-l paddle-r)
   (apply-velocity ball)
   (check-for-collision ball paddle-l paddle-r))
+
+(defmethod update-computer ((paddle paddle) (ball ball))
+  (let* ((p1 (get-center paddle))
+         (p2 (location ball))
+         (dir (subt p2 p1))
+         (dir (vec2 0 (y dir))))
+    (setf (velocity paddle) dir)))

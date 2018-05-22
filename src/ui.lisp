@@ -1,5 +1,10 @@
 (in-package :pong)
 
+;; Register resources
+(register-resource-package 'pong
+                           (asdf:system-relative-pathname :pong "assets/"))
+(define-font 'pong::fonts-default "RobotoMono-Regular.ttf")
+
 (defun draw-background ()
   (draw-rect (vec2 0 0) *width* *height* :fill-paint *background*))
 
@@ -15,3 +20,13 @@
                  block-width
                  block-height
                  :fill-paint *primary*))))
+
+(defun draw-score (score location)
+  (let* ((posy (- *height* 100))
+         (posx (if (eq location :left)
+                 (- *center-x* 140)
+                 (+ *center-x* 100)))
+         (pos (vec2 posx posy)))
+    (draw-text (write-to-string score) pos
+               :fill-color *primary*
+               :font (make-font 'pong::fonts-default 100))))

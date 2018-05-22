@@ -43,7 +43,10 @@
   (draw-center-line)
   (display (player this))
   (display (computer this))
-  (display (ball this)))
+  (display (ball this))
+  ;; Draw the scores.
+  (draw-score (score (player this)) :left)
+  (draw-score (score (computer this)) :right))
 
 (defun start-pong ()
   (start 'pong))
