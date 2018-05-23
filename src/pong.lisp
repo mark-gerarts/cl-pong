@@ -11,6 +11,19 @@
   (:viewport-height *height*)
   (:viewport-title "Pong"))
 
+(defmethod handle-score ((this pong) (player player))
+  (add-point player)
+  (sleep 1)
+  (setf (ball this) (make-ball)))
+
+(defmethod check-point-score ((this pong))
+  (multiple-value-bind (top right bottom left) (get-edges (ball this))
+    (declare (ignore top bottom))
+    (when (< left 0)
+      (handle-score this (computer this)))
+    (when (> right *width*)
+      (handle-score this (player this)))))
+
 (defmethod post-initialize ((this pong))
   ;; Initialize the players.
   (let* ((paddle-l (make-paddle (vec2 *paddle-offset* *center-y*)))
@@ -36,7 +49,8 @@
     (update-computer paddle-r ball)
     (update-paddle paddle-l)
     (update-paddle paddle-r)
-    (update-ball ball paddle-l paddle-r)))
+    (update-ball ball paddle-l paddle-r)
+    (check-point-score this)))
 
 (defmethod draw ((this pong))
   (draw-background)
