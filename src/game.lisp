@@ -101,8 +101,13 @@
 (defclass ball (movable) ())
 
 (defun make-ball ()
-  ;; Create a random starting velocity that is more likely to be horizontal.
-  (let* ((velocity (vec2 (- (random 2.0) 1) (- (random 1.0) 0.5)))
+  ;; We create a random starting velocity that will never point to the bottom or
+  ;; top edge. We do this by creating a random poing on the left or right edge
+  ;; and make the velocity have this direction.
+  (let* ((py (random *height*))
+         (px (if (= 1 (random 2)) 0 *width*))
+         (center (vec2 *center-x* *center-y*))
+         (velocity (subt (vec2 px py) center))
          (velocity (normalize velocity))
          (velocity (mult velocity *ball-speed*))
          (location (vec2 *center-x* *center-y*)))
