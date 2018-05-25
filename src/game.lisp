@@ -62,9 +62,9 @@
 
 (defmethod get-center ((paddle paddle))
   (let* ((x (x (location paddle)))
-         (x (+ x (/ *paddle-height* 2)))
+         (x (+ x (/ *paddle-width* 2)))
          (y (y (location paddle)))
-         (y (+ y (/ *paddle-width* 2))))
+         (y (+ y (/ *paddle-height* 2))))
     (vec2 x y)))
 
 (defmethod move ((paddle paddle) direction)
@@ -172,8 +172,11 @@
   (check-for-collision ball paddle-l paddle-r))
 
 (defmethod update-computer ((paddle paddle) (ball ball))
-  (let* ((p1 (get-center paddle))
-         (p2 (location ball))
-         (dir (subt p2 p1))
-         (dir (vec2 0 (y dir))))
+  ;; Naive AI implementation. The paddle moves according to the y-position of
+  ;; the ball, limited to a maximum velocity.
+  (let* ((paddley (y (get-center paddle)))
+         (bally (y (location ball)))
+         (dir (if (> paddley bally)
+                  (vec2 0 (- *ai-max-movement-speed*))
+                  (vec2 0 *ai-max-movement-speed*))))
     (setf (velocity paddle) dir)))

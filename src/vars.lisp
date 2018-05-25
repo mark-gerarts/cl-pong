@@ -12,6 +12,9 @@
 (defvar *paddle-offset* 20)
 (defvar *default-movement-speed* 4)
 
+;; AI
+(defvar *ai-max-movement-speed* *default-movement-speed*)
+
 ;; Ball
 (defvar *ball-radius* 7)
 (defvar *ball-speed* 4)
